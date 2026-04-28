@@ -36,20 +36,24 @@
                 <h3>Giriş Yap</h3>
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
-                    <input type="text" id="loginUser" placeholder="Kullanıcı Adı" required>
+                    <input type="text" id="loginUser" name="username" placeholder="Kullanıcı Adı" autocomplete="username" required>
                 </div>
                 <div class="input-group">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="loginPass" placeholder="Şifre" required>
+                    <input type="password" id="loginPass" name="password" placeholder="Şifre" autocomplete="current-password" required>
                     <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('loginPass', this)"></i>
                 </div>
                 <button type="submit" class="btn-primary w-full" id="manualLoginBtn">Giriş Yap</button>
+                <div id="deviceNote" style="margin-top: 0.8rem; font-size: 0.75rem; color: #94a3b8; text-align: center; line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--accent);"></i>
+                    Hesaplar ve notlar gizlilik için cihazınıza özel saklanır. Diğer cihazdaki hesabınız için <strong>Kayıt Ol</strong>un veya <strong>Yedek Yükle</strong>yin.
+                </div>
                 <div id="registeredUsersHint" style="margin-top:1rem; font-size:0.8rem; color:var(--text-muted); display:none;">
-                    💡 Kayıtlı kullanıcılar: <span id="userListHint"></span>
+                    💡 Bu cihazdaki kullanıcılar: <span id="userListHint"></span>
                 </div>
                 <div id="accountRecoveryArea" style="margin-top:1rem; text-align:center;">
                     <button type="button" onclick="discoverAllUserData()" class="btn-link" style="font-size:0.8rem; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline;">
-                        Kayıp Hesabımı Bul (Kurtarma Modu)
+                        Bu Cihazdaki Kayıp Hesabımı Bul
                     </button>
                 </div>
                 <p class="auth-footer">Hesabınız yok mu? <a href="#" id="toRegister">Kayıt Ol</a></p>
@@ -60,11 +64,11 @@
                 <h3>Kayıt Ol</h3>
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
-                    <input type="text" id="regUser" placeholder="Kullanıcı Adı" required>
+                    <input type="text" id="regUser" name="new-username" placeholder="Kullanıcı Adı" autocomplete="username" required>
                 </div>
                 <div class="input-group">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="regPass" placeholder="Şifre" required>
+                    <input type="password" id="regPass" name="new-password" placeholder="Şifre" autocomplete="new-password" required>
                     <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('regPass', this)"></i>
                 </div>
                 <button type="submit" class="btn-primary w-full">Kayıt Ol</button>
