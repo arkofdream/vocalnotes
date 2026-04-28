@@ -745,47 +745,72 @@ function showAuthStatus(msg, type = 'ok') {
 }
 
 function login(username, password) {
-    if (!username || !password) return;
+    if (!username || !password) {
+        showAuthStatus('⚠️ Lütfen tüm alanları doldurun.', 'warn');
+        return;
+    }
     username = username.trim();
     password = password.trim();
 
+    console.log("Login attempt for:", username);
+
     let users = [];
     try {
-        // Hem yeni hem de eski anahtarları kontrol et
-        const newUsers = JSON.parse(localStorage.getItem('vocalnotes_users') || '[]');
-        const legacyUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const getSafeArray = (key) => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return Array.isArray(data) ? data : [];
+            } catch (e) { return []; }
+        };
+
+        const newUsers = getSafeArray('vocalnotes_users');
+        const legacyUsers = getSafeArray('users');
         
-        // Tekilleştir ve birleştir
         const allUsersMap = new Map();
         [...legacyUsers, ...newUsers].forEach(u => {
-            if (u && u.name) allUsersMap.set(u.name.toLowerCase(), u);
+            if (u && u.name) {
+                // Şifre alanını 'pass' olarak standardize et
+                const standardizedUser = { ...u, pass: u.pass || u.password };
+                allUsersMap.set(u.name.toLowerCase().trim(), standardizedUser);
+            }
         });
         users = Array.from(allUsersMap.values());
         
-        // Eğer legacy'den veri geldiyse yeni anahtara kaydet (otomatik göç)
+        // Göç kontrolü
         if (legacyUsers.length > 0 && newUsers.length === 0) {
             localStorage.setItem('vocalnotes_users', JSON.stringify(users));
         }
     } catch(e) {
-        console.error("Veritabanı hatası:", e);
+        console.error("Veritabanı erişim hatası:", e);
+        showAuthStatus('❌ Veritabanı hatası. Tarayıcı ayarlarınızı kontrol edin.', 'warn');
+        return;
     }
     
-    const user = users.find(u => u.name.trim().toLowerCase() === username.toLowerCase());
+    const user = users.find(u => {
+        if (!u || !u.name) return false;
+        return u.name.toLowerCase().trim() === username.toLowerCase();
+    });
     
     if (!user) {
-        showAuthStatus('❌ Kullanıcı bulunamadı. Lütfen kullanıcı adınızı kontrol edin.', 'warn');
-        // DETEKTİF MODU: Diğer anahtarlara da bak
+        showAuthStatus('❌ Kullanıcı bulunamadı. Kayıtlı olduğunuzdan emin olun.', 'warn');
         scanAllForUsernames();
         return;
     }
 
-    if (user.pass.trim() !== password) {
-        showAuthStatus('❌ Şifre hatalı. Lütfen şifrenizi kontrol edin.', 'warn');
+    const storedPass = (user.pass || '').toString().trim();
+    if (storedPass !== password) {
+        showAuthStatus('❌ Şifre hatalı. Lütfen kontrol edip tekrar deneyin.', 'warn');
+        console.warn("Password mismatch for user:", username);
         return;
     }
     
+    // Başarılı Giriş
     localStorage.setItem('vocalnotes_user', JSON.stringify(user));
-    checkAuth();
+    currentUser = user;
+    authOverlay.style.display = 'none';
+    currentUserName.textContent = user.name;
+    loadNotes();
+    renderNotes();
     showStatus('👋 Hoş geldin, ' + user.name);
 }
 
@@ -800,21 +825,26 @@ function scanAllForUsernames() {
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         try {
-            const val = JSON.parse(localStorage.getItem(key));
+            const raw = localStorage.getItem(key);
+            if (!raw || raw === 'undefined') continue;
+            
+            const val = JSON.parse(raw);
             if (Array.isArray(val)) {
-                val.forEach(item => { if (item && item.name) allFoundNames.push(item.name); });
+                val.forEach(item => { 
+                    if (item && item.name) allFoundNames.push(item.name.trim()); 
+                });
             } else if (val && val.name) {
-                allFoundNames.push(val.name);
+                allFoundNames.push(val.name.trim());
             }
         } catch(e) {}
     }
 
-    if (allFoundNames.length > 0) {
-        const uniqueNames = [...new Set(allFoundNames)];
+    const uniqueNames = [...new Set(allFoundNames)].filter(n => n.length > 0);
+    if (uniqueNames.length > 0) {
         userSpan.textContent = uniqueNames.join(', ');
         hintDiv.style.display = 'block';
     } else {
-        showAuthStatus('❌ Kayıtlı kullanıcı bulunamadı. Lütfen yeni bir hesap oluşturun.', 'warn');
+        hintDiv.style.display = 'none';
     }
 }
 
@@ -845,22 +875,33 @@ function register(username, password) {
         return;
     }
 
-    const users = JSON.parse(localStorage.getItem('vocalnotes_users') || '[]');
-    if (users.find(u => u.name.toLowerCase() === username.toLowerCase())) {
+    let users = [];
+    try {
+        const raw = localStorage.getItem('vocalnotes_users');
+        users = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(users)) users = [];
+    } catch(e) { users = []; }
+
+    if (users.find(u => u && u.name && u.name.toLowerCase().trim() === username.toLowerCase())) {
         showAuthStatus('⚠️ Bu kullanıcı adı zaten alınmış.', 'warn');
         return;
     }
     
     const newUser = { id: Date.now(), name: username, pass: password };
     users.push(newUser);
-    localStorage.setItem('vocalnotes_users', JSON.stringify(users));
     
-    showAuthStatus('✅ Kayıt başarılı! Giriş yapılıyor...', 'ok');
-    
-    // Otomatik Giriş
-    setTimeout(() => {
-        login(username, password);
-    }, 1200);
+    try {
+        localStorage.setItem('vocalnotes_users', JSON.stringify(users));
+        showAuthStatus('✅ Kayıt başarılı! Giriş yapılıyor...', 'ok');
+        
+        // Otomatik Giriş
+        setTimeout(() => {
+            login(username, password);
+        }, 1200);
+    } catch (e) {
+        console.error("Save error:", e);
+        showAuthStatus('❌ Kayıt başarısız (Kota dolmuş olabilir).', 'warn');
+    }
 }
 
 function logout() {
@@ -1341,38 +1382,33 @@ window.discoverAllUserData = function() {
     }
 
     try {
-        // 1. Standart anahtarları kontrol et
         const stdKeys = ['vocalnotes_users', 'users', 'vocalnotes_user'];
-        stdKeys.forEach(key => {
-            const raw = localStorage.getItem(key);
-            if (!raw) return;
-            try {
-                const val = JSON.parse(raw);
-                if (Array.isArray(val)) {
-                    val.forEach(u => { if (u && u.name) allFound.push({ ...u, source: key }); });
-                } else if (val && val.name) {
-                    allFound.push({ ...val, source: key });
-                }
-            } catch(e) {}
-        });
-
-        // 2. Tüm localStorage'ı derinlemesine tara
+        
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (stdKeys.includes(key)) continue;
-            
             const raw = localStorage.getItem(key);
+            if (!raw || raw === 'undefined' || raw === 'null') continue;
+            
             try {
                 const val = JSON.parse(raw);
-                // Eğer içinde 'name' ve 'pass' olan bir nesne veya dizi ise al
                 if (Array.isArray(val)) {
                     val.forEach(item => {
                         if (item && item.name && (item.pass || item.password)) {
-                            allFound.push({ name: item.name, pass: item.pass || item.password, id: item.id || Date.now(), source: key });
+                            allFound.push({ 
+                                id: item.id || Date.now(), 
+                                name: item.name.toString().trim(), 
+                                pass: (item.pass || item.password).toString().trim(),
+                                source: key 
+                            });
                         }
                     });
                 } else if (val && val.name && (val.pass || val.password)) {
-                    allFound.push({ name: val.name, pass: val.pass || val.password, id: val.id || Date.now(), source: key });
+                    allFound.push({ 
+                        id: val.id || Date.now(), 
+                        name: val.name.toString().trim(), 
+                        pass: (val.pass || val.password).toString().trim(),
+                        source: key 
+                    });
                 }
             } catch(e) {}
         }
@@ -1381,7 +1417,6 @@ window.discoverAllUserData = function() {
     }
 
     if (allFound.length > 0) {
-        // İsimlere göre tekilleştir
         const uniqueMap = new Map();
         allFound.forEach(u => uniqueMap.set(u.name.toLowerCase(), u));
         const uniqueUsers = Array.from(uniqueMap.values());
@@ -1389,20 +1424,23 @@ window.discoverAllUserData = function() {
         userSpan.textContent = uniqueUsers.map(u => u.name).join(', ');
         hintDiv.style.display = 'block';
 
-        // Veritabanını Onar (Tüm bulunanları ana listeye ekle)
-        const currentUsers = JSON.parse(localStorage.getItem('vocalnotes_users') || '[]');
+        let currentUsers = [];
+        try {
+            currentUsers = JSON.parse(localStorage.getItem('vocalnotes_users')) || [];
+            if (!Array.isArray(currentUsers)) currentUsers = [];
+        } catch(e) { currentUsers = []; }
+
         const mergedUsers = [...currentUsers];
-        
         uniqueUsers.forEach(u => {
-            if (!mergedUsers.find(mu => mu.name.toLowerCase() === u.name.toLowerCase())) {
-                mergedUsers.push({ id: u.id || Date.now(), name: u.name, pass: u.pass });
+            if (!mergedUsers.find(mu => mu && mu.name && mu.name.toLowerCase().trim() === u.name.toLowerCase())) {
+                mergedUsers.push({ id: u.id, name: u.name, pass: u.pass });
             }
         });
         
         localStorage.setItem('vocalnotes_users', JSON.stringify(mergedUsers));
 
         if (statusDiv) {
-            statusDiv.innerHTML = `✅ ${uniqueUsers.length} hesap kurtarıldı ve veritabanı onarıldı!<br><span style="font-size:0.8rem; color:var(--text-muted)">Şimdi giriş yapmayı deneyebilirsiniz.</span>`;
+            statusDiv.innerHTML = `✅ ${uniqueUsers.length} hesap kurtarıldı ve onarıldı!<br><span style="font-size:0.8rem; color:var(--text-muted)">Şimdi giriş yapabilirsiniz.</span>`;
         }
     } else {
         if (statusDiv) statusDiv.textContent = '❌ Hiçbir eski kayıt bulunamadı.';

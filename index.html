@@ -33,7 +33,7 @@
 
             <!-- Login Form -->
             <form id="loginForm" class="auth-form">
-                <h3>Login</h3>
+                <h3>Giriş Yap</h3>
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
                     <input type="text" id="loginUser" placeholder="Kullanıcı Adı" required>
@@ -45,30 +45,30 @@
                 </div>
                 <button type="submit" class="btn-primary w-full" id="manualLoginBtn">Giriş Yap</button>
                 <div id="registeredUsersHint" style="margin-top:1rem; font-size:0.8rem; color:var(--text-muted); display:none;">
-                    💡 Registered users: <span id="userListHint"></span>
+                    💡 Kayıtlı kullanıcılar: <span id="userListHint"></span>
                 </div>
                 <div id="accountRecoveryArea" style="margin-top:1rem; text-align:center;">
                     <button type="button" onclick="discoverAllUserData()" class="btn-link" style="font-size:0.8rem; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline;">
-                        Find My Lost Account (Recovery Mode)
+                        Kayıp Hesabımı Bul (Kurtarma Modu)
                     </button>
                 </div>
-                <p class="auth-footer">Don't have an account? <a href="#" id="toRegister">Register</a></p>
+                <p class="auth-footer">Hesabınız yok mu? <a href="#" id="toRegister">Kayıt Ol</a></p>
             </form>
 
             <!-- Register Form -->
             <form id="registerForm" class="auth-form" style="display:none;">
-                <h3>Register</h3>
+                <h3>Kayıt Ol</h3>
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
-                    <input type="text" id="regUser" placeholder="Username" required>
+                    <input type="text" id="regUser" placeholder="Kullanıcı Adı" required>
                 </div>
                 <div class="input-group">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="regPass" placeholder="Password" required>
+                    <input type="password" id="regPass" placeholder="Şifre" required>
                     <i class="fa-solid fa-eye toggle-pass" onclick="togglePassVisibility('regPass', this)"></i>
                 </div>
-                <button type="submit" class="btn-primary w-full">Register</button>
-                <p class="auth-footer">Already have an account? <a href="#" id="toLogin">Login</a></p>
+                <button type="submit" class="btn-primary w-full">Kayıt Ol</button>
+                <p class="auth-footer">Zaten hesabınız var mı? <a href="#" id="toLogin">Giriş Yap</a></p>
             </form>
         </div>
     </div>
